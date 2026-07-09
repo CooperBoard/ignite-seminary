@@ -11,6 +11,14 @@ export default async function Home() {
 
   return (
     <div style={{ maxWidth: 560, margin: "48px auto 0", textAlign: "center" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo.png"
+        alt="Ignite Seminary — Biblical Training, Missions, Church Planting"
+        width={180}
+        height={180}
+        style={{ margin: "0 auto 20px", display: "block" }}
+      />
       <p className="eyebrow">Ignite Church</p>
       <h1 style={{ fontSize: "2.4rem", margin: "0 0 12px" }}>
         Study the Word. Fan the flame.

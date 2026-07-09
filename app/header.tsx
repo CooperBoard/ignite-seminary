@@ -11,7 +11,10 @@ export default async function Header() {
     <header className="site-header">
       <div className="inner">
         <Link href={user ? "/dashboard" : "/"} className="brand">
-          <span className="mark">IS</span>
+          <span className="mark">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="" width={30} height={30} />
+          </span>
           <span>Ignite Seminary</span>
         </Link>
         {user ? (

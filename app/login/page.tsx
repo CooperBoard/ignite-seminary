@@ -25,6 +25,14 @@ export default function LoginPage() {
 
   return (
     <div style={{ maxWidth: 420, margin: "40px auto 0" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo.png"
+        alt="Ignite Seminary"
+        width={110}
+        height={110}
+        style={{ margin: "0 auto 16px", display: "block" }}
+      />
       <p className="eyebrow">Student &amp; instructor access</p>
       <h1 style={{ marginTop: 0 }}>Sign in</h1>
       {status === "sent" ? (
