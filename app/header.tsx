@@ -31,7 +31,7 @@ export default async function Header() {
         <Link href={user ? "/dashboard" : "/"} className="brand">
           <span className="mark">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/mark.png" alt="" width={30} height={30} />
+            <img src="/logo.png" alt="" width={40} height={40} />
           </span>
           <span style={{ whiteSpace: "nowrap" }}>Ignite Seminary</span>
         </Link>

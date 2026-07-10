@@ -35,12 +35,13 @@ main { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
 .brand { display: flex; align-items: center; gap: 10px; color: #fff; font-family: Georgia, serif; font-size: 1.15rem; }
 .brand:hover { text-decoration: none; }
 .brand .mark {
-  width: 34px; height: 34px; border-radius: 50%;
+  width: 44px; height: 44px; border-radius: 50%;
   background: #fff;
   display: grid; place-items: center;
   overflow: hidden;
+  flex-shrink: 0;
 }
-.brand .mark img { width: 30px; height: 30px; display: block; }
+.brand .mark img { width: 40px; height: 40px; display: block; }
 .header-user { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: #e6ddf7; flex-wrap: wrap; justify-content: flex-end; }
 .header-user form { margin: 0; }
 @media (max-width: 640px) {
