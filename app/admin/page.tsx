@@ -7,6 +7,8 @@ import {
   updateCourse,
   addEnrollmentByEmail,
   removeEnrollment,
+  generateEnrollmentCodes,
+  deleteEnrollmentCode,
 } from "@/app/actions";
 import TuitionModal from "./tuition-modal";
 
@@ -41,6 +43,17 @@ export default async function AdminPage({
         .select("id, student_id, description, amount_cents, due_on, status, paid_on, profiles!tuition_charges_student_id_fkey ( full_name, email )")
         .order("due_on", { ascending: true }),
     ]);
+
+  const { data: enrollCodes } = await supabase
+    .from("enrollment_codes")
+    .select("id, code, course_id, issued_to, created_at, used_at, used:profiles!enrollment_codes_used_by_fkey ( full_name, email )")
+    .order("created_at", { ascending: false });
+  const codesByCourse = new Map<string, any[]>();
+  for (const c of enrollCodes ?? []) {
+    const arr = codesByCourse.get(c.course_id) ?? [];
+    arr.push(c);
+    codesByCourse.set(c.course_id, arr);
+  }
 
   const staff = (people ?? []).filter((p: any) => p.role === "admin" || p.role === "instructor");
   const rosterByCourse = new Map<string, any[]>();
@@ -148,6 +161,55 @@ export default async function AdminPage({
                 </div>
                 <button type="submit">Save course</button>
               </form>
+            </details>
+
+            <details style={{ marginTop: 8 }}>
+              <summary className="muted" style={{ cursor: "pointer" }}>
+                Enrollment codes ({(codesByCourse.get(c.id) ?? []).filter((x: any) => !x.used_at).length} unused)
+              </summary>
+              <div style={{ marginTop: 10 }}>
+                <p className="muted" style={{ marginTop: 0, fontSize: "0.85rem" }}>
+                  Give a student one code after they pay — each code enrolls one person, once.
+                </p>
+                <form action={generateEnrollmentCodes} className="stack">
+                  <input type="hidden" name="course_id" value={c.id} />
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <div style={{ width: 110 }}>
+                      <label>How many</label>
+                      <input name="count" type="number" min={1} max={25} defaultValue={1} className="text-input" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label>Note (who paid — optional)</label>
+                      <input name="issued_to" type="text" className="text-input" placeholder="e.g. John Smith, paid cash 7/10" />
+                    </div>
+                  </div>
+                  <button type="submit">Generate code(s)</button>
+                </form>
+                <div style={{ marginTop: 10 }}>
+                  {(codesByCourse.get(c.id) ?? []).map((k: any) => (
+                    <div key={k.id} className="item-row">
+                      <div>
+                        <strong style={{ fontFamily: "monospace" }}>{k.code}</strong>
+                        {k.issued_to && <span className="muted"> — {k.issued_to}</span>}
+                        <p className="muted" style={{ margin: "2px 0 0" }}>
+                          {k.used_at
+                            ? `✓ used by ${k.used?.full_name || k.used?.email || "someone"} on ${new Date(k.used_at).toLocaleDateString()}`
+                            : `unused · created ${new Date(k.created_at).toLocaleDateString()}`}
+                        </p>
+                      </div>
+                      {!k.used_at && (
+                        <form action={deleteEnrollmentCode}>
+                          <input type="hidden" name="code_id" value={k.id} />
+                          <button type="submit" className="ghost-ink">✕</button>
+                        </form>
+                      )}
+                    </div>
+                  ))}
+                  {(codesByCourse.get(c.id) ?? []).length === 0 && (
+                    <p className="muted">No codes yet.</p>
+                  )}
+                </div>
+              </div>
             </details>
 
             <details style={{ marginTop: 8 }}>

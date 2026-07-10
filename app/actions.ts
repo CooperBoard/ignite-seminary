@@ -226,6 +226,54 @@ export async function sendMessage(formData: FormData) {
   revalidatePath("/messages");
 }
 
+// ── One-time enrollment codes ───────────────────────────────────
+
+function randomCode(prefix: string): string {
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I/L lookalikes
+  let s = "";
+  for (let i = 0; i < 6; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
+  return `${prefix}-${s}`;
+}
+
+export async function generateEnrollmentCodes(formData: FormData) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  const courseId = String(formData.get("course_id") ?? "");
+  const count = Math.min(Math.max(Number(formData.get("count") ?? 1), 1), 25);
+  const issuedTo = String(formData.get("issued_to") ?? "").trim() || null;
+  if (!courseId) return;
+
+  const { data: course } = await supabase
+    .from("courses")
+    .select("title, enroll_code")
+    .eq("id", courseId)
+    .maybeSingle();
+  const prefix = (course?.enroll_code || course?.title || "CODE")
+    .replace(/[^A-Za-z]/g, "")
+    .slice(0, 4)
+    .toUpperCase() || "CODE";
+
+  const rows = Array.from({ length: count }, () => ({
+    code: randomCode(prefix),
+    course_id: courseId,
+    issued_to: issuedTo,
+    created_by: user.id,
+  }));
+  await supabase.from("enrollment_codes").insert(rows);
+  revalidatePath("/admin");
+}
+
+export async function deleteEnrollmentCode(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get("code_id") ?? "");
+  if (!id) return;
+  await supabase.from("enrollment_codes").delete().eq("id", id).is("used_at", null);
+  revalidatePath("/admin");
+}
+
 // ── Tuition ─────────────────────────────────────────────────────
 
 export async function addTuitionCharge(formData: FormData) {
