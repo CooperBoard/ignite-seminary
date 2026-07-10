@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
 import { viewingAsStudent } from "@/lib/view-mode";
+import { toEmbedUrl } from "@/lib/embed";
 import {
   submitAssignment,
   postToThread,
@@ -222,43 +223,62 @@ export default async function CoursePage({ params }: { params: { id: string } })
                 .sort((a: any, b: any) => a.position - b.position)
                 .map((mat: any) => {
                   const done = doneMaterials.has(mat.id);
+                  const embedUrl = mat.kind === "video" ? toEmbedUrl(mat.url) : null;
                   return (
-                    <div key={mat.id} className="item-row">
-                      <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
-                        {!isStaff && (
-                          <form action={toggleMaterialDone}>
-                            <input type="hidden" name="material_id" value={mat.id} />
-                            <input type="hidden" name="course_id" value={course.id} />
-                            <input type="hidden" name="done" value={String(done)} />
-                            <button
-                              type="submit"
-                              className="check-btn"
-                              title={done ? "Mark as not done" : "Mark as done"}
-                              aria-label={done ? "Mark as not done" : "Mark as done"}
-                            >
-                              {done ? "✓" : "○"}
-                            </button>
-                          </form>
-                        )}
-                        <div>
-                          {mat.url ? (
-                            <a href={mat.url} target="_blank" rel="noreferrer">{mat.title}</a>
-                          ) : (
-                            <strong>{mat.title}</strong>
+                    <div key={mat.id}>
+                      <div className="item-row">
+                        <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+                          {!isStaff && (
+                            <form action={toggleMaterialDone}>
+                              <input type="hidden" name="material_id" value={mat.id} />
+                              <input type="hidden" name="course_id" value={course.id} />
+                              <input type="hidden" name="done" value={String(done)} />
+                              <button
+                                type="submit"
+                                className="check-btn"
+                                title={done ? "Mark as not done" : "Mark as done"}
+                                aria-label={done ? "Mark as not done" : "Mark as done"}
+                              >
+                                {done ? "✓" : "○"}
+                              </button>
+                            </form>
                           )}
-                          {mat.body && <p className="muted" style={{ margin: "4px 0 0" }}>{mat.body}</p>}
+                          <div>
+                            {mat.url && mat.kind !== "image" ? (
+                              <a href={mat.url} target="_blank" rel="noreferrer">{mat.title}</a>
+                            ) : (
+                              <strong>{mat.title}</strong>
+                            )}
+                            {mat.body && <p className="muted" style={{ margin: "4px 0 0" }}>{mat.body}</p>}
+                          </div>
                         </div>
+                        <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <span className="pill">{mat.kind}</span>
+                          {isStaff && (
+                            <form action={deleteMaterial}>
+                              <input type="hidden" name="material_id" value={mat.id} />
+                              <input type="hidden" name="course_id" value={course.id} />
+                              <button type="submit" className="ghost-ink">✕</button>
+                            </form>
+                          )}
+                        </span>
                       </div>
-                      <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <span className="pill">{mat.kind}</span>
-                        {isStaff && (
-                          <form action={deleteMaterial}>
-                            <input type="hidden" name="material_id" value={mat.id} />
-                            <input type="hidden" name="course_id" value={course.id} />
-                            <button type="submit" className="ghost-ink">✕</button>
-                          </form>
-                        )}
-                      </span>
+                      {embedUrl && (
+                        <div className="video-embed">
+                          <iframe
+                            src={embedUrl}
+                            title={mat.title}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      )}
+                      {mat.kind === "image" && mat.url && (
+                        <a href={mat.url} target="_blank" rel="noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={mat.url} alt={mat.title} className="material-image" />
+                        </a>
+                      )}
                     </div>
                   );
                 })}
@@ -504,14 +524,27 @@ export default async function CoursePage({ params }: { params: { id: string } })
                         <select name="kind" className="text-input">
                           <option value="link">link</option>
                           <option value="pdf">pdf</option>
-                          <option value="video">video</option>
+                          <option value="video">video (embeds)</option>
+                          <option value="image">image</option>
+                          <option value="file">file</option>
                           <option value="text">text</option>
                         </select>
                       </div>
                       <div style={{ flex: 2 }}>
-                        <label>URL (for link/pdf/video)</label>
+                        <label>URL (link / video / anything hosted elsewhere)</label>
                         <input name="url" type="url" className="text-input" />
                       </div>
+                    </div>
+                    <div>
+                      <label>Or upload a photo / PDF / document (max 8 MB)</label>
+                      <input name="file" type="file" className="text-input" accept="image/*,.pdf,.doc,.docx,.ppt,.pptx,.txt" />
+                      <p className="muted" style={{ margin: "6px 0 0" }}>
+                        🎬 <strong>Videos:</strong> upload to YouTube (set it to “Unlisted”) or Vimeo,
+                        then paste the link above with type “video” — it plays right on this page.
+                        We don&apos;t host video files on purpose: storing and streaming video is very
+                        costly, while YouTube/Vimeo do it free on faster servers. Photos and
+                        documents are small, so those upload here directly.
+                      </p>
                     </div>
                     <div>
                       <label>Notes / text body</label>

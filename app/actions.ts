@@ -220,6 +220,10 @@ export async function deleteModule(formData: FormData) {
   revalidatePath(`/course/${courseId}`);
 }
 
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MB — photos and documents only.
+// Video files are intentionally NOT uploadable: hosting video is very costly
+// (storage + bandwidth per view), while YouTube/Vimeo embed for free.
+
 export async function addMaterial(formData: FormData) {
   const supabase = createClient();
   const moduleId = String(formData.get("module_id") ?? "");
@@ -227,9 +231,23 @@ export async function addMaterial(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   if (!moduleId || !title) return;
   const kind = String(formData.get("kind") ?? "link");
-  const url = String(formData.get("url") ?? "").trim() || null;
+  let url = String(formData.get("url") ?? "").trim() || null;
   const body = String(formData.get("body") ?? "").trim() || null;
   const position = Number(formData.get("position") ?? 0);
+
+  // Optional direct upload (photos, PDFs, docs) → public course-media bucket
+  const file = formData.get("file");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > MAX_UPLOAD_BYTES) return;
+    const safeName = (file.name || "upload").replace(/[^\w.\- ]+/g, "_").slice(-120);
+    const path = `${courseId}/${crypto.randomUUID()}-${safeName}`;
+    const { error } = await supabase.storage
+      .from("course-media")
+      .upload(path, file, { contentType: file.type || undefined });
+    if (error) return;
+    url = supabase.storage.from("course-media").getPublicUrl(path).data.publicUrl;
+  }
+
   await supabase.from("materials").insert({ module_id: moduleId, title, kind, url, body, position });
   revalidatePath(`/course/${courseId}`);
 }
@@ -239,6 +257,13 @@ export async function deleteMaterial(formData: FormData) {
   const id = String(formData.get("material_id") ?? "");
   const courseId = String(formData.get("course_id") ?? "");
   if (!id) return;
+  // If this material's file lives in our bucket, clean it up too
+  const { data: mat } = await supabase.from("materials").select("url").eq("id", id).maybeSingle();
+  const marker = "/object/public/course-media/";
+  if (mat?.url && mat.url.includes(marker)) {
+    const path = decodeURIComponent(mat.url.split(marker)[1] ?? "");
+    if (path) await supabase.storage.from("course-media").remove([path]);
+  }
   await supabase.from("materials").delete().eq("id", id);
   revalidatePath(`/course/${courseId}`);
 }
