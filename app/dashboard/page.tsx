@@ -206,6 +206,8 @@ export default async function Dashboard({
         <Link href="/calendar">📅 Calendar</Link>
         {" · "}
         <Link href="/transcript">📜 View your transcript</Link>
+        {" · "}
+        <Link href="/account/password">🔑 Change password</Link>
         {profile?.role === "admin" && (
           <>
             {" · "}

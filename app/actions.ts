@@ -375,7 +375,17 @@ export async function confirmSignIn(formData: FormData) {
       { onConflict: "id", ignoreDuplicates: true }
     );
   }
-  redirect("/dashboard");
+  // Recovery links land on the set-a-new-password page
+  redirect(type === "recovery" ? "/account/password" : "/dashboard");
+}
+
+export async function updatePassword(formData: FormData) {
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 8) redirect("/account/password?error=short");
+  const supabase = createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) redirect("/account/password?error=failed");
+  redirect("/dashboard?password=updated");
 }
 
 // ── Enrollment ──────────────────────────────────────────────────

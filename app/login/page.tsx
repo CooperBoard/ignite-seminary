@@ -2,33 +2,68 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase-browser";
 
+type Mode = "signin" | "signup" | "forgot" | "magic";
+
 export default function LoginPage() {
+  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState<"idle" | "busy" | "sent">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [linkError, setLinkError] = useState(false);
 
   useEffect(() => {
-    // Surface why a clicked email link bounced back here instead of looping silently
     const err = new URLSearchParams(window.location.search).get("error");
     if (err) setLinkError(true);
   }, []);
 
-  async function sendLink(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setStatus("sending");
+    setErrorMsg("");
+    setStatus("busy");
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (error) {
-      setErrorMsg(error.message);
-      setStatus("error");
-    } else {
+    try {
+      if (mode === "signin") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        window.location.href = "/dashboard";
+        return;
+      }
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        if (data.session) {
+          window.location.href = "/dashboard";
+          return;
+        }
+        setStatus("sent"); // email confirmation required
+        return;
+      }
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email);
+        if (error) throw error;
+        setStatus("sent");
+        return;
+      }
+      // magic link fallback
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) throw error;
       setStatus("sent");
+    } catch (err: any) {
+      setErrorMsg(
+        err?.message === "Invalid login credentials"
+          ? "Wrong email or password. If you signed in with email links before, use “Forgot password” to set a password."
+          : err?.message || "Something went wrong"
+      );
+      setStatus("idle");
     }
   }
+
+  const headline =
+    mode === "signup" ? "Create your account" : mode === "forgot" ? "Reset your password" : "Sign in";
 
   return (
     <div style={{ maxWidth: 420, margin: "40px auto 0" }}>
@@ -41,20 +76,22 @@ export default function LoginPage() {
         style={{ margin: "0 auto 16px", display: "block" }}
       />
       <p className="eyebrow">Student &amp; instructor access</p>
-      <h1 style={{ marginTop: 0 }}>Sign in</h1>
+      <h1 style={{ marginTop: 0 }}>{headline}</h1>
+
       {linkError && status !== "sent" && (
         <div className="notice" style={{ marginBottom: 14 }}>
-          That sign-in link was already used or has expired — they only work once.
-          Enter your email below and we&apos;ll send a fresh one.
+          That email link was already used or has expired. Sign in with your password below,
+          or use &quot;Forgot password&quot; to set a new one.
         </div>
       )}
+
       {status === "sent" ? (
         <div className="notice">
-          Check your email — we sent a sign-in link to <strong>{email}</strong>.
-          You can open it on any device.
+          Check your email — we sent {mode === "forgot" ? "a password-reset link" : mode === "signup" ? "a confirmation link" : "a sign-in link"} to{" "}
+          <strong>{email}</strong>. You can open it on any device.
         </div>
       ) : (
-        <form className="stack" onSubmit={sendLink}>
+        <form className="stack" onSubmit={submit}>
           <div>
             <label htmlFor="email">Email address</label>
             <input
@@ -66,14 +103,44 @@ export default function LoginPage() {
               placeholder="you@example.com"
             />
           </div>
-          <button type="submit" disabled={status === "sending"}>
-            {status === "sending" ? "Sending link…" : "Email me a sign-in link"}
-          </button>
-          {status === "error" && (
-            <p className="muted" style={{ color: "#b91c1c" }}>{errorMsg}</p>
+          {(mode === "signin" || mode === "signup") && (
+            <div>
+              <label htmlFor="password">Password{mode === "signup" ? " (8+ characters)" : ""}</label>
+              <input
+                id="password"
+                type="password"
+                required
+                minLength={mode === "signup" ? 8 : undefined}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
           )}
-          <p className="muted">
-            No password needed — we email you a one-time link each time you sign in.
+          <button type="submit" disabled={status === "busy"}>
+            {status === "busy"
+              ? "Working…"
+              : mode === "signin"
+                ? "Sign in"
+                : mode === "signup"
+                  ? "Create account"
+                  : mode === "forgot"
+                    ? "Send reset link"
+                    : "Email me a sign-in link"}
+          </button>
+          {errorMsg && <p className="muted" style={{ color: "#b91c1c" }}>{errorMsg}</p>}
+
+          <p className="muted" style={{ textAlign: "center" }}>
+            {mode === "signin" && (
+              <>
+                <a href="#" onClick={(e) => { e.preventDefault(); setMode("signup"); setErrorMsg(""); }}>New student? Create an account</a>
+                {" · "}
+                <a href="#" onClick={(e) => { e.preventDefault(); setMode("forgot"); setErrorMsg(""); }}>Forgot password?</a>
+              </>
+            )}
+            {mode !== "signin" && (
+              <a href="#" onClick={(e) => { e.preventDefault(); setMode("signin"); setErrorMsg(""); }}>← Back to sign in</a>
+            )}
           </p>
         </form>
       )}
