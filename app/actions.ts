@@ -350,6 +350,34 @@ export async function setViewMode(formData: FormData) {
   revalidatePath(path);
 }
 
+// ── Sign-in confirmation (token-hash flow) ──────────────────────
+// Verification happens on a button press, not on page load, so email
+// security scanners that pre-open links can't burn the one-time token.
+
+export async function confirmSignIn(formData: FormData) {
+  const tokenHash = String(formData.get("token_hash") ?? "");
+  const type = String(formData.get("type") ?? "email");
+  if (!tokenHash) redirect("/login?error=expired");
+
+  const supabase = createClient();
+  const { error } = await supabase.auth.verifyOtp({
+    type: type as any,
+    token_hash: tokenHash,
+  });
+  if (error) redirect("/login?error=expired");
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    await supabase.from("profiles").upsert(
+      { id: user.id, email: user.email ?? null },
+      { onConflict: "id", ignoreDuplicates: true }
+    );
+  }
+  redirect("/dashboard");
+}
+
 // ── Enrollment ──────────────────────────────────────────────────
 
 export async function joinCourse(formData: FormData) {
