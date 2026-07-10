@@ -66,10 +66,15 @@ button:hover, .btn:hover { background: var(--violet-deep); }
 button.ghost { background: transparent; color: #e6ddf7; border: 1px solid rgba(255,255,255,0.35); padding: 6px 12px; font-size: 0.8rem; }
 button.ghost:hover { background: rgba(255,255,255,0.12); }
 
-input[type="email"], textarea {
+input[type="email"], textarea, .text-input {
   width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px;
   font-size: 0.95rem; font-family: inherit; background: #fff; color: var(--ink);
 }
+button.ghost-ink {
+  background: transparent; color: var(--ink-soft); border: 1px solid var(--line);
+  padding: 4px 10px; font-size: 0.78rem; border-radius: 6px;
+}
+button.ghost-ink:hover { background: var(--flame-soft); color: var(--flame); border-color: var(--flame); }
 textarea { min-height: 110px; resize: vertical; }
 input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 2px solid var(--flame); outline-offset: 1px; }
 label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
