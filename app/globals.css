@@ -41,8 +41,13 @@ main { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
   overflow: hidden;
 }
 .brand .mark img { width: 30px; height: 30px; display: block; }
-.header-user { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: #e6ddf7; }
+.header-user { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: #e6ddf7; flex-wrap: wrap; justify-content: flex-end; }
 .header-user form { margin: 0; }
+@media (max-width: 640px) {
+  .brand { font-size: 1rem; }
+  .header-user { gap: 8px; }
+  .header-user .user-email { display: none; } /* email crowds small screens */
+}
 
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
