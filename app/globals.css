@@ -94,6 +94,13 @@ button.check-btn:hover { background: var(--flame-soft); }
   display: block; max-width: 100%; height: auto; border-radius: 8px;
   border: 1px solid var(--line); margin: 8px 0 12px;
 }
+.msg { padding: 10px 12px; border-radius: 10px; background: var(--paper); margin-bottom: 10px; max-width: 85%; }
+.msg-mine { background: var(--flame-soft); margin-left: auto; }
+.msg-badge {
+  display: inline-grid; place-items: center; min-width: 20px; height: 20px;
+  padding: 0 5px; border-radius: 999px; background: #fff; color: var(--violet-deep);
+  font-size: 0.72rem; font-weight: 700;
+}
 textarea { min-height: 110px; resize: vertical; }
 input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 2px solid var(--flame); outline-offset: 1px; }
 label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }

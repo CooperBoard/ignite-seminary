@@ -10,13 +10,18 @@ export default async function Header() {
   } = await supabase.auth.getUser();
 
   let isStaffRole = false;
+  let unread = 0;
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
+    const [{ data: profile }, { count }] = await Promise.all([
+      supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+      supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("recipient_id", user.id)
+        .is("read_at", null),
+    ]);
     isStaffRole = profile?.role === "admin" || profile?.role === "instructor";
+    unread = count ?? 0;
   }
   const studentView = viewingAsStudent();
 
@@ -32,6 +37,10 @@ export default async function Header() {
         </Link>
         {user ? (
           <div className="header-user">
+            <Link href="/messages" style={{ color: "#e6ddf7", display: "flex", gap: 6, alignItems: "center" }}>
+              ✉ Messages
+              {unread > 0 && <span className="msg-badge">{unread}</span>}
+            </Link>
             {isStaffRole && (
               <form action={setViewMode}>
                 <input type="hidden" name="mode" value={studentView ? "staff" : "student"} />

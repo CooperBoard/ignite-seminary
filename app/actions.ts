@@ -154,6 +154,49 @@ export async function removeEnrollment(formData: FormData) {
   revalidatePath("/admin");
 }
 
+// ── Private messages ────────────────────────────────────────────
+
+export async function sendMessage(formData: FormData) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  const recipientId = String(formData.get("recipient_id") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  if (!recipientId || !body || recipientId === user.id) return;
+
+  const { error } = await supabase
+    .from("messages")
+    .insert({ sender_id: user.id, recipient_id: recipientId, body });
+  if (error) return;
+
+  // Nudge the recipient by email — the conversation itself lives in the app
+  const [{ data: recipient }, { data: sender }] = await Promise.all([
+    supabase.from("profiles").select("email, full_name").eq("id", recipientId).maybeSingle(),
+    supabase.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle(),
+  ]);
+  if (recipient?.email) {
+    const senderName = sender?.full_name || sender?.email || "A classmate";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://ignite-seminary.vercel.app";
+    await sendEmail(
+      [recipient.email],
+      `New message from ${senderName}`,
+      `<div style="font-family:Georgia,serif;max-width:560px;margin:0 auto;color:#241b35">
+        <p><strong>${senderName}</strong> sent you a message on Ignite Seminary:</p>
+        <blockquote style="border-left:3px solid #4c1d95;margin:12px 0;padding:6px 14px;white-space:pre-wrap">${body
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")}</blockquote>
+        <p><a href="${appUrl}/messages/${user.id}" style="background:#4c1d95;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px">Reply in the app</a></p>
+      </div>`
+    );
+  }
+
+  revalidatePath(`/messages/${recipientId}`);
+  revalidatePath("/messages");
+}
+
 // ── Calendar events ─────────────────────────────────────────────
 
 export async function createEvent(formData: FormData) {

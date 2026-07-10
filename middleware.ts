@@ -33,6 +33,7 @@ export async function middleware(request: NextRequest) {
     path.startsWith("/course") ||
     path.startsWith("/transcript") ||
     path.startsWith("/calendar") ||
+    path.startsWith("/messages") ||
     path.startsWith("/admin");
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
