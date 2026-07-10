@@ -129,6 +129,13 @@ table.gradebook th, table.gradebook td { border: 1px solid var(--line); padding:
 table.gradebook th { background: var(--flame-soft); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
+dialog.modal {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 20px; width: min(680px, 92vw); max-height: 85vh; overflow-y: auto;
+  background: var(--card); color: var(--ink);
+}
+dialog.modal::backdrop { background: rgba(36, 27, 53, 0.55); }
+
 /* Certificate */
 .certificate {
   max-width: 640px; margin: 0 auto; text-align: center;

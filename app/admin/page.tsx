@@ -7,10 +7,8 @@ import {
   updateCourse,
   addEnrollmentByEmail,
   removeEnrollment,
-  addTuitionCharge,
-  setTuitionStatus,
-  deleteTuitionCharge,
 } from "@/app/actions";
+import TuitionModal from "./tuition-modal";
 
 export const dynamic = "force-dynamic";
 
@@ -188,83 +186,13 @@ export default async function AdminPage({
       })}
 
       <h2>Tuition</h2>
-      <div className="card">
-        <details>
-          <summary className="muted" style={{ cursor: "pointer" }}>＋ Add charge (one student, or everyone in a course)</summary>
-          <form action={addTuitionCharge} className="stack" style={{ marginTop: 10 }}>
-            <div>
-              <label>Description (e.g. “Hermeneutics — Fall 2026 Tuition”)</label>
-              <input name="description" type="text" required className="text-input" />
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <label>Amount ($)</label>
-                <input name="amount" type="number" step="0.01" min="0" required className="text-input" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label>Due date</label>
-                <input name="due_on" type="date" className="text-input" />
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <label>Bill everyone enrolled in</label>
-                <select name="course_id" className="text-input">
-                  <option value="">— choose course —</option>
-                  {(courses ?? []).map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.title}</option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ flex: 1 }}>
-                <label>…or just one student</label>
-                <select name="student_id" className="text-input">
-                  <option value="">— everyone in course above —</option>
-                  {(people ?? [])
-                    .filter((p: any) => p.role === "student")
-                    .map((p: any) => (
-                      <option key={p.id} value={p.id}>{p.full_name || p.email}</option>
-                    ))}
-                </select>
-              </div>
-            </div>
-            <button type="submit">Add charge</button>
-          </form>
-        </details>
-
-        {(charges ?? []).length === 0 ? (
-          <p className="muted" style={{ marginBottom: 0 }}>No tuition charges yet.</p>
-        ) : (
-          (charges ?? []).map((t: any) => (
-            <div key={t.id} className="item-row">
-              <div>
-                <strong>{t.profiles?.full_name || t.profiles?.email}</strong>
-                <span className="muted"> — {t.description}</span>
-                <p className="muted" style={{ margin: "2px 0 0" }}>
-                  ${(t.amount_cents / 100).toFixed(2)}
-                  {t.due_on ? ` · due ${t.due_on}` : ""}
-                  {t.status === "paid" && t.paid_on ? ` · paid ${t.paid_on}` : ""}
-                </p>
-              </div>
-              <span style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {["unpaid", "paid", "waived"].map((st) => (
-                  <form key={st} action={setTuitionStatus}>
-                    <input type="hidden" name="charge_id" value={t.id} />
-                    <input type="hidden" name="status" value={st} />
-                    <button type="submit" className={t.status === st ? "att-btn att-active" : "att-btn"}>
-                      {st}
-                    </button>
-                  </form>
-                ))}
-                <form action={deleteTuitionCharge}>
-                  <input type="hidden" name="charge_id" value={t.id} />
-                  <button type="submit" className="ghost-ink">✕</button>
-                </form>
-              </span>
-            </div>
-          ))
-        )}
-      </div>
+      <TuitionModal
+        charges={(charges ?? []) as any}
+        courses={(courses ?? []).map((c: any) => ({ id: c.id, label: c.title }))}
+        students={(people ?? [])
+          .filter((p: any) => p.role === "student")
+          .map((p: any) => ({ id: p.id, label: p.full_name || p.email }))}
+      />
 
       <h2>New course</h2>
       <div className="card">
