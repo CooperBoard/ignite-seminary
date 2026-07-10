@@ -62,7 +62,12 @@ export default async function GradebookPage({ params }: { params: { id: string }
   return (
     <div>
       <Link href={`/course/${course.id}`} className="muted">← {course.title}</Link>
-      <h1 style={{ marginTop: 8 }}>Gradebook</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+        <h1 style={{ marginTop: 8 }}>Gradebook</h1>
+        <a href={`/course/${course.id}/gradebook/csv`} className="btn" style={{ display: "inline-block" }}>
+          ⬇ Download CSV
+        </a>
+      </div>
       <p className="muted">{students.length} enrolled · {assignments.length} assignments · {quizzes.length} quizzes</p>
 
       {students.length === 0 ? (

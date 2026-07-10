@@ -12,13 +12,26 @@ export default async function TranscriptView({
 }) {
   const supabase = createClient();
 
-  const [{ data: enrollments }, { data: certs }] = await Promise.all([
-    supabase
-      .from("enrollments")
-      .select("course_id, courses ( id, title, term, starts_on, ends_on, archived )")
-      .eq("student_id", studentId),
-    supabase.from("certificates").select("course_id, issued_at").eq("student_id", studentId),
-  ]);
+  const now = new Date().toISOString();
+  const [{ data: enrollments }, { data: certs }, { data: pastSessions }, { data: myMarks }] =
+    await Promise.all([
+      supabase
+        .from("enrollments")
+        .select("course_id, courses ( id, title, term, starts_on, ends_on, archived )")
+        .eq("student_id", studentId),
+      supabase.from("certificates").select("course_id, issued_at").eq("student_id", studentId),
+      supabase.from("events").select("id, course_id").eq("kind", "class").lte("starts_at", now),
+      supabase.from("event_attendance").select("event_id, status").eq("student_id", studentId),
+    ]);
+
+  const sessionsByCourse = new Map<string, string[]>();
+  for (const s of pastSessions ?? []) {
+    if (!s.course_id) continue;
+    const arr = sessionsByCourse.get(s.course_id) ?? [];
+    arr.push(s.id);
+    sessionsByCourse.set(s.course_id, arr);
+  }
+  const markByEvent = new Map((myMarks ?? []).map((m: any) => [m.event_id, m.status]));
 
   const certByCourse = new Map((certs ?? []).map((c: any) => [c.course_id, c.issued_at]));
   const courses = (enrollments ?? [])
@@ -27,11 +40,16 @@ export default async function TranscriptView({
     .sort((a: any, b: any) => (a.starts_on ?? "").localeCompare(b.starts_on ?? ""));
 
   const rows = await Promise.all(
-    courses.map(async (c: any) => ({
-      course: c,
-      grade: await computeCourseGrade(supabase, c.id, studentId),
-      certIssued: certByCourse.get(c.id) ?? null,
-    }))
+    courses.map(async (c: any) => {
+      const sessionIds = sessionsByCourse.get(c.id) ?? [];
+      const attended = sessionIds.filter((id) => markByEvent.get(id) === "present").length;
+      return {
+        course: c,
+        grade: await computeCourseGrade(supabase, c.id, studentId),
+        certIssued: certByCourse.get(c.id) ?? null,
+        attendance: sessionIds.length > 0 ? `${attended}/${sessionIds.length}` : null,
+      };
+    })
   );
 
   return (
@@ -55,11 +73,12 @@ export default async function TranscriptView({
               <th>Term</th>
               <th>Dates</th>
               <th>Grade</th>
+              <th>Attendance</th>
               <th>Certificate</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ course, grade, certIssued }) => (
+            {rows.map(({ course, grade, certIssued, attendance }) => (
               <tr key={course.id}>
                 <td>{course.title}</td>
                 <td>{course.term ?? "—"}</td>
@@ -76,6 +95,7 @@ export default async function TranscriptView({
                     <span className="muted">no graded work yet</span>
                   )}
                 </td>
+                <td>{attendance ?? "—"}</td>
                 <td>
                   {certIssued
                     ? `Issued ${new Date(certIssued).toLocaleDateString()}`

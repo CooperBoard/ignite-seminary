@@ -23,18 +23,47 @@ export async function submitAssignment(formData: FormData) {
     .eq("student_id", user.id)
     .maybeSingle();
 
+  let isNew = false;
   if (existing && !existing.graded_at) {
     await supabase
       .from("submissions")
       .update({ body, submitted_at: new Date().toISOString() })
       .eq("id", existing.id);
   } else if (!existing) {
+    isNew = true;
     await supabase.from("submissions").insert({
       assignment_id: assignmentId,
       student_id: user.id,
       body,
     });
   }
+
+  // Tell the instructor fresh work arrived (first submission only, not revisions)
+  if (isNew) {
+    const [{ data: course }, { data: student }] = await Promise.all([
+      supabase
+        .from("courses")
+        .select("id, title, instructor:profiles!courses_instructor_id_fkey ( email, full_name )")
+        .eq("id", courseId)
+        .maybeSingle(),
+      supabase.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle(),
+    ]);
+    const instructorEmail = (course as any)?.instructor?.email;
+    if (instructorEmail && course) {
+      const who = student?.full_name || student?.email || "A student";
+      await sendEmail(
+        [instructorEmail],
+        `New submission — ${course.title}`,
+        courseEmail({
+          heading: `${who} submitted work`,
+          body: `A new submission is waiting in the grading queue for ${course.title}.`,
+          courseTitle: course.title,
+          courseId: course.id,
+        })
+      );
+    }
+  }
+
   revalidatePath(`/course/${courseId}`);
 }
 
@@ -195,6 +224,27 @@ export async function sendMessage(formData: FormData) {
 
   revalidatePath(`/messages/${recipientId}`);
   revalidatePath("/messages");
+}
+
+// ── Attendance ──────────────────────────────────────────────────
+
+export async function markAttendance(formData: FormData) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  const eventId = String(formData.get("event_id") ?? "");
+  const studentId = String(formData.get("student_id") ?? "");
+  const status = String(formData.get("status") ?? "");
+  if (!eventId || !studentId || !["present", "absent", "excused"].includes(status)) return;
+  await supabase
+    .from("event_attendance")
+    .upsert(
+      { event_id: eventId, student_id: studentId, status, marked_by: user.id, marked_at: new Date().toISOString() },
+      { onConflict: "event_id,student_id" }
+    );
+  revalidatePath(`/attendance/${eventId}`);
 }
 
 // ── Calendar events ─────────────────────────────────────────────

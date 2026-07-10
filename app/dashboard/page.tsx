@@ -144,7 +144,12 @@ export default async function Dashboard({
         </>
       )}
 
-      <p style={{ marginTop: 20 }}>
+      <p className="muted" style={{ marginTop: 24, fontSize: "0.85rem" }}>
+        📲 Tip: add this to your phone&apos;s home screen for one-tap access — in Safari or Chrome,
+        tap Share, then &quot;Add to Home Screen.&quot;
+      </p>
+
+      <p style={{ marginTop: 12 }}>
         <Link href="/calendar">📅 Calendar</Link>
         {" · "}
         <Link href="/transcript">📜 View your transcript</Link>

@@ -58,7 +58,7 @@ export default async function CalendarPage() {
       supabase
         .from("events")
         .select("id, kind, title, description, location, starts_at, course_id, courses ( title )")
-        .gte("starts_at", `${today}T00:00:00Z`)
+        .gte("starts_at", new Date(Date.now() - 1000 * 60 * 60 * 24 * 35).toISOString())
         .lte("starts_at", horizon)
         .order("starts_at"),
       supabase
@@ -76,9 +76,25 @@ export default async function CalendarPage() {
     ]);
 
   const items: AgendaItem[] = [];
+  const pastClasses: AgendaItem[] = [];
 
   for (const e of events ?? []) {
     const dt = new Date(e.starts_at);
+    const isPast = e.starts_at.slice(0, 10) < today;
+    if (isPast) {
+      if (isStaff && e.kind === "class") {
+        pastClasses.push({
+          date: e.starts_at.slice(0, 10),
+          time: null,
+          type: "class",
+          label: e.title,
+          detail: (e as any).courses?.title ?? null,
+          href: null,
+          eventId: e.id,
+        });
+      }
+      continue;
+    }
     items.push({
       date: e.starts_at.slice(0, 10),
       time: dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }),
@@ -192,6 +208,27 @@ export default async function CalendarPage() {
         <div className="notice">Nothing on the calendar yet.</div>
       )}
 
+      {isStaff && pastClasses.length > 0 && (
+        <details className="card" style={{ marginBottom: 16 }}>
+          <summary className="muted" style={{ cursor: "pointer" }}>
+            Recent class sessions (attendance corrections)
+          </summary>
+          <div style={{ marginTop: 8 }}>
+            {pastClasses.reverse().map((it) => (
+              <div key={it.eventId} className="item-row">
+                <div>
+                  <strong>{it.label}</strong>
+                  <span className="muted"> · {it.date}</span>
+                </div>
+                <Link href={`/attendance/${it.eventId}`} className="ghost-ink" style={{ padding: "4px 10px", border: "1px solid var(--line)", borderRadius: 6, fontSize: "0.78rem" }}>
+                  Attendance
+                </Link>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
       {Array.from(byDate.entries()).map(([date, dayItems]) => (
         <section key={date} style={{ marginBottom: 4 }}>
           <h2 style={{ fontSize: "1.05rem", marginBottom: 6 }}>{fmtDateHeading(date)}</h2>
@@ -205,6 +242,11 @@ export default async function CalendarPage() {
                 <span style={{ display: "flex", gap: 8, alignItems: "center", whiteSpace: "nowrap" }}>
                   {it.time && <span className="muted">{it.time}</span>}
                   <span className="pill">{TYPE_LABEL[it.type]}</span>
+                  {isStaff && it.eventId && it.type === "class" && (
+                    <Link href={`/attendance/${it.eventId}`} className="ghost-ink" style={{ padding: "4px 10px", border: "1px solid var(--line)", borderRadius: 6, fontSize: "0.78rem" }}>
+                      Attendance
+                    </Link>
+                  )}
                   {isStaff && it.eventId && (
                     <form action={deleteEvent}>
                       <input type="hidden" name="event_id" value={it.eventId} />
