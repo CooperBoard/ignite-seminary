@@ -23,8 +23,16 @@ export default async function Dashboard({
 
   const { data: courses } = await supabase
     .from("courses")
-    .select("id, title, term, description, starts_on, ends_on")
+    .select("id, title, term, description, starts_on, ends_on, archived")
     .order("starts_on", { ascending: true });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const currentCourses = (courses ?? []).filter(
+    (c: any) => !c.archived && (!c.ends_on || c.ends_on >= todayStr)
+  );
+  const pastCourses = (courses ?? []).filter(
+    (c: any) => c.archived || (c.ends_on && c.ends_on < todayStr)
+  );
 
   // Upcoming assignments across every course this user can see (RLS scopes
   // students to enrolled courses). Staff see everything, which is fine.
@@ -101,8 +109,8 @@ export default async function Dashboard({
       )}
 
       <h2>Your courses</h2>
-      {courses && courses.length > 0 ? (
-        courses.map((c) => (
+      {currentCourses.length > 0 ? (
+        currentCourses.map((c: any) => (
           <Link key={c.id} href={`/course/${c.id}`} style={{ display: "block", color: "inherit" }}>
             <div className="card" style={{ cursor: "pointer" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
@@ -119,6 +127,32 @@ export default async function Dashboard({
           Enter your course code below to join your class.
         </div>
       )}
+
+      {pastCourses.length > 0 && (
+        <>
+          <h2>Past courses</h2>
+          {pastCourses.map((c: any) => (
+            <Link key={c.id} href={`/course/${c.id}`} style={{ display: "block", color: "inherit" }}>
+              <div className="card" style={{ cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+                  <h3 className="serif" style={{ margin: 0 }}>{c.title}</h3>
+                  <span className="pill">{c.term ?? "past"}</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </>
+      )}
+
+      <p style={{ marginTop: 20 }}>
+        <Link href="/transcript">📜 View your transcript</Link>
+        {profile?.role === "admin" && (
+          <>
+            {" · "}
+            <Link href="/admin">⚙ Admin console</Link>
+          </>
+        )}
+      </p>
 
       <div className="card" style={{ marginTop: 20 }}>
         <p className="eyebrow" style={{ marginTop: 0 }}>Join a course</p>

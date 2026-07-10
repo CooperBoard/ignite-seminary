@@ -79,6 +79,7 @@ export default async function GradebookPage({ params }: { params: { id: string }
                 {quizzes.map((q: any) => (
                   <th key={q.id} title={q.title}>{q.title.length > 14 ? q.title.slice(0, 13) + "…" : q.title}<br /><span className="muted">quiz</span></th>
                 ))}
+                <th>Total<br /><span className="muted">graded</span></th>
               </tr>
             </thead>
             <tbody>
@@ -97,6 +98,27 @@ export default async function GradebookPage({ params }: { params: { id: string }
                     const at = attKey.get(`${q.id}:${s.id}`);
                     return <td key={q.id}>{at ? `${at.score}/${at.max_score}` : "—"}</td>;
                   })}
+                  <td>
+                    {(() => {
+                      let earned = 0;
+                      let possible = 0;
+                      for (const a of assignments as any[]) {
+                        const sub = subKey.get(`${a.id}:${s.id}`);
+                        if (sub?.graded_at && typeof sub.grade === "number") {
+                          earned += sub.grade;
+                          possible += a.points ?? 100;
+                        }
+                      }
+                      for (const q of quizzes as any[]) {
+                        const at = attKey.get(`${q.id}:${s.id}`);
+                        if (at && at.max_score > 0) {
+                          earned += (at.score / at.max_score) * 100;
+                          possible += 100;
+                        }
+                      }
+                      return possible > 0 ? <strong>{Math.round((earned / possible) * 100)}%</strong> : "—";
+                    })()}
+                  </td>
                 </tr>
               ))}
             </tbody>

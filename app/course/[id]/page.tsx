@@ -38,7 +38,7 @@ export default async function CoursePage({ params }: { params: { id: string } })
   const [{ data: course }, { data: profile }] = await Promise.all([
     supabase
       .from("courses")
-      .select("id, title, term, description, starts_on, ends_on, enroll_code")
+      .select("id, title, term, description, starts_on, ends_on, enroll_code, instructor:profiles!courses_instructor_id_fkey ( full_name )")
       .eq("id", params.id)
       .maybeSingle(),
     supabase.from("profiles").select("role").eq("id", user!.id).maybeSingle(),
@@ -132,6 +132,9 @@ export default async function CoursePage({ params }: { params: { id: string } })
     <div>
       <p className="eyebrow">{course.term ?? "Course"}</p>
       <h1 style={{ marginTop: 0 }}>{course.title}</h1>
+      {(course as any).instructor?.full_name && (
+        <p className="muted" style={{ marginTop: -6 }}>Taught by {(course as any).instructor.full_name}</p>
+      )}
       {course.description && <p className="muted">{course.description}</p>}
 
       {isStaff ? (

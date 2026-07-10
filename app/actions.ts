@@ -58,6 +58,102 @@ export async function postToThread(formData: FormData) {
   revalidatePath(`/course/${courseId}`);
 }
 
+// ── Admin console ───────────────────────────────────────────────
+// RLS (is_admin / is_staff) is the real gate on all of these.
+
+export async function setUserRole(formData: FormData) {
+  const supabase = createClient();
+  const userId = String(formData.get("user_id") ?? "");
+  const role = String(formData.get("role") ?? "");
+  if (!userId || !["admin", "instructor", "student"].includes(role)) return;
+  await supabase.from("profiles").update({ role }).eq("id", userId);
+  revalidatePath("/admin");
+}
+
+export async function createCourse(formData: FormData) {
+  const supabase = createClient();
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) return;
+  const term = String(formData.get("term") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const startsOn = String(formData.get("starts_on") ?? "").trim() || null;
+  const endsOn = String(formData.get("ends_on") ?? "").trim() || null;
+  const enrollCode = String(formData.get("enroll_code") ?? "").trim().toUpperCase() || null;
+  await supabase.from("courses").insert({
+    title,
+    term,
+    description,
+    starts_on: startsOn,
+    ends_on: endsOn,
+    enroll_code: enrollCode,
+  });
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+}
+
+export async function updateCourse(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get("course_id") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  if (!id || !title) return;
+  const term = String(formData.get("term") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const startsOn = String(formData.get("starts_on") ?? "").trim() || null;
+  const endsOn = String(formData.get("ends_on") ?? "").trim() || null;
+  const enrollCode = String(formData.get("enroll_code") ?? "").trim().toUpperCase() || null;
+  const instructorId = String(formData.get("instructor_id") ?? "").trim() || null;
+  const archived = String(formData.get("archived") ?? "") === "true";
+  await supabase
+    .from("courses")
+    .update({
+      title,
+      term,
+      description,
+      starts_on: startsOn,
+      ends_on: endsOn,
+      enroll_code: enrollCode,
+      instructor_id: instructorId,
+      archived,
+    })
+    .eq("id", id);
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  revalidatePath(`/course/${id}`);
+}
+
+export async function addEnrollmentByEmail(formData: FormData) {
+  const supabase = createClient();
+  const courseId = String(formData.get("course_id") ?? "");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!courseId || !email) return;
+  const { data: person } = await supabase
+    .from("profiles")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
+  if (!person) {
+    redirect(`/admin?enroll=notfound&email=${encodeURIComponent(email)}`);
+  }
+  const { data: existing } = await supabase
+    .from("enrollments")
+    .select("id")
+    .eq("course_id", courseId)
+    .eq("student_id", person!.id)
+    .maybeSingle();
+  if (!existing) {
+    await supabase.from("enrollments").insert({ course_id: courseId, student_id: person!.id });
+  }
+  revalidatePath("/admin");
+}
+
+export async function removeEnrollment(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get("enrollment_id") ?? "");
+  if (!id) return;
+  await supabase.from("enrollments").delete().eq("id", id);
+  revalidatePath("/admin");
+}
+
 // ── View mode (staff ⇄ student) ─────────────────────────────────
 
 export async function setViewMode(formData: FormData) {
