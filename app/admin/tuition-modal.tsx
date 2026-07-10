@@ -51,6 +51,12 @@ export default function TuitionModal({
           </button>
         </div>
 
+        <div className="notice" style={{ marginTop: 14, fontSize: "0.85rem" }}>
+          <strong>Price sheet:</strong> $240 per course · $99 annual registration fee ·
+          prepay discounts: 1 year (5 courses) $1,140 (5% off $1,200) · 2 years $2,220 (7.5% off $2,400) ·
+          3 years $3,240 (10% off $3,600). Cash, check, or card via Subsplash (card fees added).
+        </div>
+
         <details style={{ marginTop: 14 }}>
           <summary className="muted" style={{ cursor: "pointer" }}>
             ＋ Add charge (one student, or everyone in a course)
@@ -63,7 +69,7 @@ export default function TuitionModal({
             <div style={{ display: "flex", gap: 12 }}>
               <div style={{ flex: 1 }}>
                 <label>Amount ($)</label>
-                <input name="amount" type="number" step="0.01" min="0" required className="text-input" defaultValue="280" />
+                <input name="amount" type="number" step="0.01" min="0" required className="text-input" defaultValue="240" />
               </div>
               <div style={{ flex: 1 }}>
                 <label>Due date</label>

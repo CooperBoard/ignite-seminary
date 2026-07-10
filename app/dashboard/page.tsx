@@ -153,8 +153,9 @@ export default async function Dashboard({
                 💜 Pay tuition via Subsplash
               </a>
               <p className="muted" style={{ margin: "8px 0 0", fontSize: "0.8rem" }}>
-                Payments are processed through our church giving platform. Once your payment
-                posts, the seminary office will mark it here — allow a day or two.
+                Pay online through our church giving platform (card processing fees are added),
+                or bring cash or a check to the seminary office. Once your payment posts,
+                the office will mark it here — allow a day or two.
               </p>
             </div>
           )}
