@@ -58,6 +58,19 @@ export async function postToThread(formData: FormData) {
   revalidatePath(`/course/${courseId}`);
 }
 
+// ── View mode (staff ⇄ student) ─────────────────────────────────
+
+export async function setViewMode(formData: FormData) {
+  const { cookies } = await import("next/headers");
+  const mode = String(formData.get("mode") ?? "staff");
+  const path = String(formData.get("path") ?? "/dashboard");
+  cookies().set("ignite_view_mode", mode === "student" ? "student" : "staff", {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  revalidatePath(path);
+}
+
 // ── Enrollment ──────────────────────────────────────────────────
 
 export async function joinCourse(formData: FormData) {

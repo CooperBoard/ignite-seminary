@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
+import { viewingAsStudent } from "@/lib/view-mode";
 import {
   submitAssignment,
   postToThread,
@@ -44,7 +45,8 @@ export default async function CoursePage({ params }: { params: { id: string } })
   ]);
 
   if (!course) notFound();
-  const isStaff = profile?.role === "admin" || profile?.role === "instructor";
+  const isStaffRole = profile?.role === "admin" || profile?.role === "instructor";
+  const isStaff = isStaffRole && !viewingAsStudent();
 
   const [{ data: modules }, { data: announcements }] = await Promise.all([
     supabase

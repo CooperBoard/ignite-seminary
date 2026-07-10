@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
+import { viewingAsStudent } from "@/lib/view-mode";
 import { updateName, joinCourse } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
@@ -46,11 +47,18 @@ export default async function Dashboard({
   const subByAssignment = new Map((mySubs ?? []).map((s: any) => [s.assignment_id, s]));
 
   const firstName = profile?.full_name?.split(" ")[0];
-  const isStudent = profile?.role === "student";
+  const studentView = viewingAsStudent();
+  const isStudent = profile?.role === "student" || studentView;
 
   return (
     <div>
-      <p className="eyebrow">{isStudent ? "Student dashboard" : `${profile?.role ?? "Member"} dashboard`}</p>
+      <p className="eyebrow">
+        {isStudent
+          ? studentView
+            ? "Student dashboard (viewing as student)"
+            : "Student dashboard"
+          : `${profile?.role ?? "Member"} dashboard`}
+      </p>
       <h1 style={{ marginTop: 0 }}>
         {firstName ? `Welcome back, ${firstName}` : "Welcome"}
       </h1>
