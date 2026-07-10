@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
+import { sendEmail, courseEmail } from "@/lib/email";
 
 export async function submitAssignment(formData: FormData) {
   const supabase = createClient();
@@ -208,6 +209,29 @@ export async function postAnnouncement(formData: FormData) {
   await supabase
     .from("announcements")
     .insert({ course_id: courseId, author_id: user.id, title, body });
+
+  // Email every enrolled student (poster is staff, so RLS allows these reads)
+  const [{ data: course }, { data: enrolled }] = await Promise.all([
+    supabase.from("courses").select("title").eq("id", courseId).maybeSingle(),
+    supabase
+      .from("enrollments")
+      .select("profiles!enrollments_student_id_fkey ( email )")
+      .eq("course_id", courseId),
+  ]);
+  const emails = (enrolled ?? [])
+    .map((e: any) => e.profiles?.email)
+    .filter(Boolean) as string[];
+  await sendEmail(
+    emails,
+    `${course?.title ?? "Course"} — ${title}`,
+    courseEmail({
+      heading: title,
+      body: body ?? "",
+      courseTitle: course?.title ?? "Course",
+      courseId,
+    })
+  );
+
   revalidatePath(`/course/${courseId}`);
 }
 
@@ -235,7 +259,132 @@ export async function gradeSubmission(formData: FormData) {
     .from("submissions")
     .update({ grade, feedback, graded_at: new Date().toISOString(), graded_by: user.id })
     .eq("id", id);
+
+  // Notify the student their grade posted
+  const { data: sub } = await supabase
+    .from("submissions")
+    .select(
+      "assignment_id, profiles!submissions_student_id_fkey ( email ), assignments ( title, points, modules ( course_id, courses ( id, title ) ) )"
+    )
+    .eq("id", id)
+    .maybeSingle();
+  const studentEmail = (sub as any)?.profiles?.email;
+  const a = (sub as any)?.assignments;
+  const c = a?.modules?.courses;
+  if (studentEmail && c) {
+    await sendEmail(
+      [studentEmail],
+      `Grade posted — ${a.title}`,
+      courseEmail({
+        heading: `Grade posted: ${grade} / ${a.points}`,
+        body: feedback ? `Feedback from your instructor:\n\n${feedback}` : "Sign in to review your graded work.",
+        courseTitle: c.title,
+        courseId: c.id,
+      })
+    );
+  }
+
   revalidatePath(`/course/${courseId}/grade`);
+  revalidatePath(`/course/${courseId}`);
+}
+
+// ── Quizzes ─────────────────────────────────────────────────────
+
+export async function createQuiz(formData: FormData) {
+  const supabase = createClient();
+  const moduleId = String(formData.get("module_id") ?? "");
+  const courseId = String(formData.get("course_id") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  if (!moduleId || !title) return;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const dueOn = String(formData.get("due_on") ?? "").trim() || null;
+  await supabase.from("quizzes").insert({ module_id: moduleId, title, description, due_on: dueOn });
+  revalidatePath(`/course/${courseId}`);
+}
+
+export async function deleteQuiz(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get("quiz_id") ?? "");
+  const courseId = String(formData.get("course_id") ?? "");
+  if (!id) return;
+  await supabase.from("quizzes").delete().eq("id", id);
+  revalidatePath(`/course/${courseId}`);
+}
+
+export async function addQuizQuestion(formData: FormData) {
+  const supabase = createClient();
+  const quizId = String(formData.get("quiz_id") ?? "");
+  const courseId = String(formData.get("course_id") ?? "");
+  const prompt = String(formData.get("prompt") ?? "").trim();
+  if (!quizId || !prompt) return;
+  const options = [
+    String(formData.get("option_0") ?? "").trim(),
+    String(formData.get("option_1") ?? "").trim(),
+    String(formData.get("option_2") ?? "").trim(),
+    String(formData.get("option_3") ?? "").trim(),
+  ].filter(Boolean);
+  if (options.length < 2) return;
+  const correctIndex = Number(formData.get("correct_index") ?? 0);
+  if (correctIndex < 0 || correctIndex >= options.length) return;
+  const position = Number(formData.get("position") ?? 0);
+  await supabase.from("quiz_questions").insert({
+    quiz_id: quizId,
+    prompt,
+    options,
+    correct_index: correctIndex,
+    position,
+  });
+  revalidatePath(`/course/${courseId}`);
+}
+
+export async function deleteQuizQuestion(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get("question_id") ?? "");
+  const courseId = String(formData.get("course_id") ?? "");
+  if (!id) return;
+  await supabase.from("quiz_questions").delete().eq("id", id);
+  revalidatePath(`/course/${courseId}`);
+}
+
+export async function submitQuiz(formData: FormData) {
+  const supabase = createClient();
+  const quizId = String(formData.get("quiz_id") ?? "");
+  const courseId = String(formData.get("course_id") ?? "");
+  const count = Number(formData.get("question_count") ?? 0);
+  if (!quizId || !count) return;
+  const answers: number[] = [];
+  for (let i = 0; i < count; i++) {
+    const v = formData.get(`q_${i}`);
+    if (v === null) return; // unanswered question — form requires all
+    answers.push(Number(v));
+  }
+  await supabase.rpc("submit_quiz", { p_quiz_id: quizId, p_answers: answers });
+  revalidatePath(`/course/${courseId}`);
+}
+
+// ── Completion tracking ─────────────────────────────────────────
+
+export async function toggleMaterialDone(formData: FormData) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  const materialId = String(formData.get("material_id") ?? "");
+  const courseId = String(formData.get("course_id") ?? "");
+  const done = String(formData.get("done") ?? "") === "true";
+  if (!materialId) return;
+  if (done) {
+    await supabase
+      .from("material_completions")
+      .delete()
+      .eq("material_id", materialId)
+      .eq("student_id", user.id);
+  } else {
+    await supabase
+      .from("material_completions")
+      .insert({ material_id: materialId, student_id: user.id });
+  }
   revalidatePath(`/course/${courseId}`);
 }
 

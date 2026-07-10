@@ -75,6 +75,16 @@ button.ghost-ink {
   padding: 4px 10px; font-size: 0.78rem; border-radius: 6px;
 }
 button.ghost-ink:hover { background: var(--flame-soft); color: var(--flame); border-color: var(--flame); }
+button.check-btn {
+  background: #fff; color: var(--violet); border: 2px solid var(--violet);
+  width: 30px; height: 30px; min-width: 30px; border-radius: 50%; padding: 0;
+  font-size: 0.95rem; line-height: 1; display: grid; place-items: center;
+}
+button.check-btn:hover { background: var(--flame-soft); }
+.progress-track {
+  margin-top: 8px; height: 12px; border-radius: 999px; background: var(--line); overflow: hidden;
+}
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--violet), var(--flame)); }
 textarea { min-height: 110px; resize: vertical; }
 input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 2px solid var(--flame); outline-offset: 1px; }
 label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
@@ -87,4 +97,27 @@ form.stack > * + * { margin-top: 12px; }
 .post .who { font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 2px; }
 .notice { background: var(--flame-soft); border: 1px solid #ddd0f5; border-radius: var(--radius); padding: 14px 16px; font-size: 0.9rem; }
 .grade { font-weight: 700; color: var(--violet); }
+table.gradebook { border-collapse: collapse; width: 100%; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
+table.gradebook th, table.gradebook td { border: 1px solid var(--line); padding: 8px 10px; font-size: 0.85rem; text-align: left; }
+table.gradebook th { background: var(--flame-soft); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Certificate */
+.certificate {
+  max-width: 640px; margin: 0 auto; text-align: center;
+  border: 3px double var(--violet); border-radius: 6px;
+  padding: 48px 40px; background: #fff;
+}
+.cert-eyebrow { font-family: Georgia, serif; font-size: 1.6rem; color: var(--violet-deep); margin: 0; }
+.cert-line { color: var(--ink-soft); margin: 10px 0 0; }
+.cert-name { font-family: Georgia, serif; font-size: 2rem; margin: 6px 0 0; color: var(--ink); }
+.cert-course { font-family: Georgia, serif; font-size: 1.4rem; margin: 6px 0 0; color: var(--violet-deep); }
+.cert-issued { margin-top: 22px; font-size: 0.9rem; color: var(--ink-soft); }
+.cert-rule { width: 120px; height: 2px; background: var(--violet); margin: 18px auto 10px; }
+.cert-footer { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin: 0; }
+@media print {
+  .site-header, .print-hide { display: none !important; }
+  body { background: #fff; }
+  main { padding: 0; max-width: none; }
+  .certificate { border-color: #33125f; }
+}
