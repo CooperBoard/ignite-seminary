@@ -154,6 +154,36 @@ export async function removeEnrollment(formData: FormData) {
   revalidatePath("/admin");
 }
 
+// ── Calendar events ─────────────────────────────────────────────
+
+export async function createEvent(formData: FormData) {
+  const supabase = createClient();
+  const title = String(formData.get("title") ?? "").trim();
+  const startsAt = String(formData.get("starts_at") ?? "").trim();
+  if (!title || !startsAt) return;
+  const kind = String(formData.get("kind") ?? "event") === "class" ? "class" : "event";
+  const courseId = String(formData.get("course_id") ?? "").trim() || null;
+  const location = String(formData.get("location") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  await supabase.from("events").insert({
+    title,
+    kind,
+    course_id: courseId,
+    location,
+    description,
+    starts_at: new Date(startsAt).toISOString(),
+  });
+  revalidatePath("/calendar");
+}
+
+export async function deleteEvent(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get("event_id") ?? "");
+  if (!id) return;
+  await supabase.from("events").delete().eq("id", id);
+  revalidatePath("/calendar");
+}
+
 // ── View mode (staff ⇄ student) ─────────────────────────────────
 
 export async function setViewMode(formData: FormData) {

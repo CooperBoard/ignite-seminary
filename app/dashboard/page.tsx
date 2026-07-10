@@ -145,6 +145,8 @@ export default async function Dashboard({
       )}
 
       <p style={{ marginTop: 20 }}>
+        <Link href="/calendar">📅 Calendar</Link>
+        {" · "}
         <Link href="/transcript">📜 View your transcript</Link>
         {profile?.role === "admin" && (
           <>
