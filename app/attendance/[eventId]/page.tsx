@@ -44,7 +44,9 @@ export default async function AttendancePage({ params }: { params: { eventId: st
     .sort((a: any, b: any) => (a.full_name || a.email || "").localeCompare(b.full_name || b.email || ""));
 
   const counts = { present: 0, excused: 0, absent: 0 } as Record<string, number>;
-  for (const s of statusByStudent.values()) counts[s] = (counts[s] ?? 0) + 1;
+  Array.from(statusByStudent.values()).forEach((s) => {
+    counts[s] = (counts[s] ?? 0) + 1;
+  });
 
   return (
     <div style={{ maxWidth: 640, margin: "0 auto" }}>
