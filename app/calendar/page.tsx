@@ -57,7 +57,7 @@ export default async function CalendarPage() {
     await Promise.all([
       supabase
         .from("events")
-        .select("id, kind, title, description, location, starts_at, course_id, courses ( title )")
+        .select("id, kind, title, description, location, starts_at, ends_at, course_id, courses ( title )")
         .gte("starts_at", new Date(Date.now() - 1000 * 60 * 60 * 24 * 35).toISOString())
         .lte("starts_at", horizon)
         .order("starts_at"),
@@ -95,9 +95,13 @@ export default async function CalendarPage() {
       }
       continue;
     }
+    const startStr = dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+    const endStr = e.ends_at
+      ? new Date(e.ends_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" })
+      : null;
     items.push({
       date: e.starts_at.slice(0, 10),
-      time: dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }),
+      time: endStr ? `${startStr}–${endStr}` : startStr,
       type: e.kind === "class" ? "class" : "event",
       label: e.title,
       detail: [
