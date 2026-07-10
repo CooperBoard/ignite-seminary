@@ -3,7 +3,7 @@ import "./globals.css";
 import Header from "./header";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://ignite-seminary.vercel.app"),
+  metadataBase: new URL("https://seminary.ignitemb.com"),
   title: "Ignite Seminary",
   description: "Biblical Training · Missions · Church Planting — course hub for Ignite Church seminary students",
   manifest: "/manifest.webmanifest",

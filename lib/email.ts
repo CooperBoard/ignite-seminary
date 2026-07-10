@@ -1,7 +1,7 @@
 // Server-only. Sends via Resend's REST API. Without RESEND_API_KEY the app
 // still works — sends are skipped and a warning is logged.
 const FROM = process.env.EMAIL_FROM || "Ignite Seminary <seminary@ignitemb.com>";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://ignite-seminary.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://seminary.ignitemb.com";
 
 export async function sendEmail(to: string[], subject: string, html: string) {
   const key = process.env.RESEND_API_KEY;
