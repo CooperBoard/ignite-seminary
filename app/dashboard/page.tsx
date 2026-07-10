@@ -44,6 +44,18 @@ export default async function Dashboard({
     .order("due_on", { ascending: true })
     .limit(8);
 
+  const [{ data: tuition }, { data: giveCfg }] = await Promise.all([
+    supabase
+      .from("tuition_charges")
+      .select("id, description, amount_cents, due_on, status, paid_on")
+      .eq("student_id", user!.id)
+      .order("due_on", { ascending: true }),
+    supabase.from("app_config").select("value").eq("key", "subsplash_url").maybeSingle(),
+  ]);
+  const subsplashUrl = giveCfg?.value ?? "https://ignitemb.com/give";
+  const unpaid = (tuition ?? []).filter((t: any) => t.status === "unpaid");
+  const balanceCents = unpaid.reduce((sum: number, t: any) => sum + t.amount_cents, 0);
+
   const upcomingIds = (upcoming ?? []).map((a: any) => a.id);
   const { data: mySubs } = upcomingIds.length
     ? await supabase
@@ -105,6 +117,47 @@ export default async function Dashboard({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {(tuition?.length ?? 0) > 0 && (
+        <div className="card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+            <p className="eyebrow" style={{ margin: 0 }}>Tuition</p>
+            {balanceCents > 0 ? (
+              <span style={{ fontWeight: 700 }}>Balance: ${(balanceCents / 100).toFixed(2)}</span>
+            ) : (
+              <span className="pill">Paid in full</span>
+            )}
+          </div>
+          {(tuition ?? []).map((t: any) => (
+            <div key={t.id} className="item-row">
+              <div>
+                {t.description}
+                {t.due_on && t.status === "unpaid" && (
+                  <span className="muted"> — due {t.due_on}</span>
+                )}
+                {t.status === "paid" && t.paid_on && (
+                  <span className="muted"> — paid {t.paid_on}</span>
+                )}
+              </div>
+              <span style={{ display: "flex", gap: 8, alignItems: "center", whiteSpace: "nowrap" }}>
+                <span>${(t.amount_cents / 100).toFixed(2)}</span>
+                <span className="pill">{t.status}</span>
+              </span>
+            </div>
+          ))}
+          {balanceCents > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <a href={subsplashUrl} target="_blank" rel="noreferrer" className="btn" style={{ display: "inline-block" }}>
+                💜 Pay tuition via Subsplash
+              </a>
+              <p className="muted" style={{ margin: "8px 0 0", fontSize: "0.8rem" }}>
+                Payments are processed through our church giving platform. Once your payment
+                posts, the seminary office will mark it here — allow a day or two.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

@@ -226,6 +226,66 @@ export async function sendMessage(formData: FormData) {
   revalidatePath("/messages");
 }
 
+// ── Tuition ─────────────────────────────────────────────────────
+
+export async function addTuitionCharge(formData: FormData) {
+  const supabase = createClient();
+  const description = String(formData.get("description") ?? "").trim();
+  const amount = Math.round(Number(formData.get("amount") ?? 0) * 100);
+  if (!description || !amount || amount < 0) return;
+  const dueOn = String(formData.get("due_on") ?? "").trim() || null;
+  const courseId = String(formData.get("course_id") ?? "").trim() || null;
+  const studentId = String(formData.get("student_id") ?? "").trim() || null;
+
+  if (studentId) {
+    await supabase.from("tuition_charges").insert({
+      student_id: studentId,
+      course_id: courseId,
+      description,
+      amount_cents: amount,
+      due_on: dueOn,
+    });
+  } else if (courseId) {
+    // Bill every enrolled student in the course
+    const { data: roster } = await supabase
+      .from("enrollments")
+      .select("student_id")
+      .eq("course_id", courseId);
+    const rows = (roster ?? []).map((r: any) => ({
+      student_id: r.student_id,
+      course_id: courseId,
+      description,
+      amount_cents: amount,
+      due_on: dueOn,
+    }));
+    if (rows.length) await supabase.from("tuition_charges").insert(rows);
+  }
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+}
+
+export async function setTuitionStatus(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get("charge_id") ?? "");
+  const status = String(formData.get("status") ?? "");
+  if (!id || !["unpaid", "paid", "waived"].includes(status)) return;
+  await supabase
+    .from("tuition_charges")
+    .update({ status, paid_on: status === "paid" ? new Date().toISOString().slice(0, 10) : null })
+    .eq("id", id);
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+}
+
+export async function deleteTuitionCharge(formData: FormData) {
+  const supabase = createClient();
+  const id = String(formData.get("charge_id") ?? "");
+  if (!id) return;
+  await supabase.from("tuition_charges").delete().eq("id", id);
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+}
+
 // ── Attendance ──────────────────────────────────────────────────
 
 export async function markAttendance(formData: FormData) {
