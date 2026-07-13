@@ -1,6 +1,8 @@
 // Server-only. Sends via Resend's REST API. Without RESEND_API_KEY the app
 // still works — sends are skipped and a warning is logged.
 const FROM = process.env.EMAIL_FROM || "Ignite Seminary <seminary@ignitemb.com>";
+// seminary@ isn't a real mailbox until the Workspace group exists — route replies somewhere real
+const REPLY_TO = process.env.EMAIL_REPLY_TO || "rob@callcooper.com";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://seminary.ignitemb.com";
 
 export async function sendEmail(to: string[], subject: string, html: string) {
@@ -20,7 +22,7 @@ export async function sendEmail(to: string[], subject: string, html: string) {
             Authorization: `Bearer ${key}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ from: FROM, to: [addr], subject, html }),
+          body: JSON.stringify({ from: FROM, to: [addr], subject, html, reply_to: REPLY_TO }),
         })
       )
     );
