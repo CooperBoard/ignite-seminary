@@ -207,7 +207,7 @@ export async function sendMessage(formData: FormData) {
   ]);
   if (recipient?.email) {
     const senderName = sender?.full_name || sender?.email || "A classmate";
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://seminary.ignitemb.com";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://ignitemb-lms.vercel.app";
     await sendEmail(
       [recipient.email],
       `New message from ${senderName}`,

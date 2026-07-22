@@ -3,7 +3,7 @@
 const FROM = process.env.EMAIL_FROM || "Ignite Seminary <seminary@ignitemb.com>";
 // seminary@ isn't a real mailbox until the Workspace group exists — route replies somewhere real
 const REPLY_TO = process.env.EMAIL_REPLY_TO || "rob@callcooper.com";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://seminary.ignitemb.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://ignitemb-lms.vercel.app";
 
 export async function sendEmail(to: string[], subject: string, html: string) {
   const key = process.env.RESEND_API_KEY;
